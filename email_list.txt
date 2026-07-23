@@ -1,0 +1,3 @@
+# Add one receiver email per line (no comments in actual use).
+# Example:
+# friend@example.com

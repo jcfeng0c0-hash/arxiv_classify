@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}ArXiv Paper Database{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 15px;
+            text-align: center;
+            position: relative;
+        }
+        
+        header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+        
+        .content {
+            padding: 15px;
+        }
+        
+        /* Mobile optimizations */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                border-radius: 8px;
+            }
+            
+            header {
+                padding: 15px 10px;
+            }
+            
+            header h1 {
+                font-size: 1.4em;
+            }
+            
+            header p {
+                font-size: 0.85em;
+            }
+            
+            .content {
+                padding: 10px;
+            }
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn:hover, .btn:active {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover, .btn-secondary:active {
+            background: #5a6268;
+        }
+        
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+        
+        .btn-read {
+            background: #17a2b8;
+        }
+        
+        .btn-read:hover, .btn-read:active {
+            background: #138496;
+        }
+        
+        .btn-important {
+            background: #ff6b6b;
+        }
+        
+        .btn-important:hover, .btn-important:active {
+            background: #ee5a52;
+        }
+        
+        /* Mobile button optimization */
+        @media screen and (max-width: 768px) {
+            .btn {
+                padding: 12px 16px;
+                font-size: 14px;
+                min-height: 44px;
+            }
+            
+            .btn-sm {
+                padding: 10px 12px;
+                font-size: 12px;
+                min-height: 40px;
+            }
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        
+        .badge-interested {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-irrelevant {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .badge-unanalyzed {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .badge-important {
+            background: #ff6b6b;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .badge-famous {
+            background: #f6ad55;
+            color: #2d3748;
+            font-weight: bold;
+        }
+        
+        .important-paper {
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .famous-paper {
+            border-left: 4px solid #f6ad55;
+        }
+        
+        /* Mobile badge optimization */
+        @media screen and (max-width: 768px) {
+            .badge {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-card h3 {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            color: #666;
+            font-size: 0.85em;
+        }
+        
+        /* Mobile stats optimization */
+        @media screen and (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+            
+            .stat-card {
+                padding: 12px 8px;
+            }
+            
+            .stat-card h3 {
+                font-size: 1.4em;
+            }
+            
+            .stat-card p {
+                font-size: 0.75em;
+            }
+        }
+        
+        .filters {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-height: 44px;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        /* Mobile filters optimization */
+        @media screen and (max-width: 768px) {
+            .filters {
+                padding: 12px;
+            }
+            
+            .filter-group {
+                gap: 8px;
+            }
+            
+            .filter-group label {
+                font-size: 13px;
+                width: 100%;
+                margin-top: 8px;
+            }
+            
+            .filter-group select,
+            .filter-group input {
+                width: 100%;
+                font-size: 16px;
+            }
+            
+            .search-box {
+                min-width: 100%;
+            }
+            
+            .filter-group .btn {
+                width: 100%;
+                margin-top: 5px;
+            }
+        }
+        
+        .paper-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            transition: box-shadow 0.3s, transform 0.2s;
+        }
+        
+        .paper-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .paper-header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .paper-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        
+        .paper-title a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .paper-title a:hover, .paper-title a:active {
+            text-decoration: underline;
+        }
+        
+        .paper-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .paper-abstract {
+            color: #555;
+            line-height: 1.6;
+            margin-top: 10px;
+            font-size: 0.95em;
+            word-wrap: break-word;
+        }
+        
+        /* Mobile paper card optimization */
+        @media screen and (max-width: 768px) {
+            .paper-card {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+            
+            .paper-card:hover {
+                transform: none;
+            }
+            
+            .paper-title {
+                font-size: 1em;
+                line-height: 1.3;
+            }
+            
+            .paper-meta {
+                font-size: 0.8em;
+                gap: 6px;
+            }
+            
+            .paper-abstract {
+                font-size: 0.9em;
+                line-height: 1.5;
+            }
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination a,
+        .pagination span {
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #667eea;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            touch-action: manipulation;
+        }
+        
+        .pagination .current {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .pagination a:hover, .pagination a:active {
+            background: #f0f0f0;
+        }
+        
+        /* Mobile pagination optimization */
+        @media screen and (max-width: 768px) {
+            .pagination {
+                gap: 5px;
+                margin-top: 15px;
+            }
+            
+            .pagination a,
+            .pagination span {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+        }
+        
+        .back-link {
+            margin-bottom: 15px;
+        }
+        
+        .detail-section {
+            margin-bottom: 20px;
+        }
+        
+        .detail-section h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        
+        .detail-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            line-height: 1.6;
+            font-size: 0.95em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .keywords {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .keyword-tag {
+            background: #e9ecef;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            color: #495057;
+        }
+        
+        /* Mobile detail page optimization */
+        @media screen and (max-width: 768px) {
+            .detail-section h2 {
+                font-size: 1.1em;
+            }
+            
+            .detail-content {
+                padding: 12px;
+                font-size: 0.9em;
+                line-height: 1.5;
+            }
+            
+            .keyword-tag {
+                font-size: 0.8em;
+                padding: 3px 8px;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{% block header_title %}📚 ArXiv Paper Database{% endblock %}</h1>
+            <p>{% block header_subtitle %}Browse and search your paper collection{% endblock %}</p>
+            <button id="settings-btn" onclick="openSettings()"
+                    style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer;font-size:18px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;"
+                    title="Settings">⚙️</button>
+        </header>
+
+        <!-- Settings Modal -->
+        <div id="settings-overlay" onclick="closeSettings()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;"></div>
+        <div id="settings-modal"
+             style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:28px 32px;z-index:1001;width:min(400px,90vw);">
+            <h2 style="margin-bottom:20px;color:#667eea;font-size:1.1em;border-bottom:2px solid #667eea;padding-bottom:8px;">⚙️ Settings</h2>
+
+            <div style="margin-bottom:20px;">
+                <label style="font-weight:600;font-size:0.95em;color:#333;display:block;margin-bottom:10px;">Inference Mode</label>
+                <div style="display:flex;gap:10px;">
+                    <label id="lbl-api" style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #667eea;border-radius:8px;cursor:pointer;background:#f0f4ff;">
+                        <input type="radio" name="inference-mode" value="api" style="accent-color:#667eea;">
+                        <div>
+                            <div style="font-weight:600;font-size:0.9em;">🌐 DeepSeek API</div>
+                            <div style="font-size:0.78em;color:#666;">Online · needs API key</div>
+                        </div>
+                    </label>
+                    <label id="lbl-local" style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;">
+                        <input type="radio" name="inference-mode" value="local" style="accent-color:#667eea;">
+                        <div>
+                            <div style="font-weight:600;font-size:0.9em;">🖥️ Local Ollama</div>
+                            <div style="font-size:0.78em;color:#666;">Offline · localhost:11434</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div id="settings-status" style="font-size:0.85em;color:#666;min-height:1.4em;margin-bottom:16px;"></div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button onclick="closeSettings()" style="padding:9px 20px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:14px;">Cancel</button>
+                <button onclick="saveSettings()" style="padding:9px 20px;background:#667eea;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">Save</button>
+            </div>
+        </div>
+
+        <script>
+        function openSettings() {
+            fetch('/api/settings').then(r => r.json()).then(s => {
+                const mode = s.use_api ? 'api' : 'local';
+                document.querySelector(`input[name="inference-mode"][value="${mode}"]`).checked = true;
+                updateModeLabels(mode);
+                document.getElementById('settings-status').textContent = '';
+                document.getElementById('settings-overlay').style.display = 'block';
+                document.getElementById('settings-modal').style.display = 'block';
+            });
+        }
+        function closeSettings() {
+            document.getElementById('settings-overlay').style.display = 'none';
+            document.getElementById('settings-modal').style.display = 'none';
+        }
+        function updateModeLabels(mode) {
+            document.getElementById('lbl-api').style.borderColor   = mode === 'api'   ? '#667eea' : '#e2e8f0';
+            document.getElementById('lbl-api').style.background    = mode === 'api'   ? '#f0f4ff' : '';
+            document.getElementById('lbl-local').style.borderColor = mode === 'local' ? '#667eea' : '#e2e8f0';
+            document.getElementById('lbl-local').style.background  = mode === 'local' ? '#f0f4ff' : '';
+        }
+        document.addEventListener('change', function(e) {
+            if (e.target.name === 'inference-mode') updateModeLabels(e.target.value);
+        });
+        function saveSettings() {
+            const mode = document.querySelector('input[name="inference-mode"]:checked').value;
+            const statusEl = document.getElementById('settings-status');
+            statusEl.textContent = 'Saving...';
+            statusEl.style.color = '#666';
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ use_api: mode === 'api' })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    statusEl.textContent = '✅ Saved! Mode: ' + (data.settings.use_api ? 'DeepSeek API' : 'Local Ollama');
+                    statusEl.style.color = '#28a745';
+                    setTimeout(closeSettings, 900);
+                } else {
+                    statusEl.textContent = '❌ Failed to save';
+                    statusEl.style.color = '#dc3545';
+                }
+            })
+            .catch(() => { statusEl.textContent = '❌ Network error'; statusEl.style.color = '#dc3545'; });
+        }
+        </script>
+        
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

@@ -1,0 +1,968 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    /* Abstract collapse styles */
+    .abstract-container {
+        margin-top: 10px;
+    }
+
+    .paper-abstract.collapsed {
+        max-height: 4.8em;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .paper-abstract.collapsed::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2em;
+        background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));
+    }
+
+    .paper-abstract.expanded {
+        max-height: none;
+    }
+
+    .paper-abstract.expanded::after {
+        display: none;
+    }
+
+    .abstract-toggle {
+        margin-top: 5px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .abstract-toggle:hover, .abstract-toggle:active {
+        color: #5568d3 !important;
+    }
+
+    /* Checkbox selection */
+    .paper-card {
+        position: relative;
+        transition: box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .paper-card.selected {
+        border-left: 4px solid #667eea;
+        box-shadow: 0 2px 12px rgba(102,126,234,0.18);
+    }
+
+    .paper-select-wrap {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .paper-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        margin-top: 4px;
+        flex-shrink: 0;
+        accent-color: #667eea;
+    }
+
+    .paper-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Floating batch toolbar */
+    #batchBar {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2d3748;
+        color: #fff;
+        border-radius: 12px;
+        padding: 12px 22px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.28);
+        z-index: 999;
+        align-items: center;
+        gap: 14px;
+        white-space: nowrap;
+        flex-wrap: wrap;
+        justify-content: center;
+        min-width: 340px;
+    }
+
+    #batchBar.visible {
+        display: flex;
+    }
+
+    #batchBar .batch-count {
+        font-size: 0.95em;
+        font-weight: 600;
+        color: #a0aec0;
+    }
+
+    #batchBar .batch-count span {
+        color: #fff;
+    }
+
+    .btn-batch {
+        padding: 7px 16px;
+        border: none;
+        border-radius: 7px;
+        font-size: 0.88em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-batch:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-batch-download {
+        background: #667eea;
+        color: #fff;
+    }
+
+    .btn-batch-download:hover:not(:disabled) {
+        background: #5568d3;
+    }
+
+    .btn-batch-important {
+        background: #f6c90e;
+        color: #2d3748;
+    }
+
+    .btn-batch-important:hover:not(:disabled) {
+        background: #e0b800;
+    }
+
+    .btn-batch-read {
+        background: #28a745;
+        color: #fff;
+    }
+
+    .btn-batch-read:hover:not(:disabled) {
+        background: #1e7e34;
+    }
+
+    .btn-batch-analyze {
+        background: #6f42c1;
+        color: #fff;
+    }
+
+    .btn-batch-analyze:hover:not(:disabled) {
+        background: #5a32a3;
+    }
+
+    .btn-batch-clear {
+        background: #4a5568;
+        color: #e2e8f0;
+    }
+
+    .btn-batch-clear:hover {
+        background: #2d3748;
+    }
+
+    /* Analyze progress overlay */
+    #analyzeOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #analyzeOverlay.visible {
+        display: flex;
+    }
+
+    #analyzeModal {
+        background: #fff;
+        border-radius: 14px;
+        padding: 30px 36px;
+        min-width: 320px;
+        max-width: 480px;
+        width: 90%;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+        text-align: center;
+    }
+
+    #analyzeModal h3 {
+        margin: 0 0 18px;
+        font-size: 1.1em;
+        color: #2d3748;
+    }
+
+    #analyzeStatusText {
+        font-size: 0.9em;
+        color: #718096;
+        margin-bottom: 14px;
+        min-height: 1.4em;
+    }
+
+    #analyzeCloseBtn {
+        padding: 8px 24px;
+        background: #6f42c1;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.95em;
+        font-weight: 600;
+    }
+
+    #analyzeCloseBtn:hover { background: #5a32a3; }
+
+    /* Download progress overlay */
+    #downloadOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #downloadOverlay.visible {
+        display: flex;
+    }
+
+    #downloadModal {
+        background: #fff;
+        border-radius: 14px;
+        padding: 30px 36px;
+        min-width: 320px;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+        text-align: center;
+    }
+
+    #downloadModal h3 {
+        margin: 0 0 18px;
+        font-size: 1.1em;
+        color: #2d3748;
+    }
+
+    .progress-bar-wrap {
+        background: #e2e8f0;
+        border-radius: 8px;
+        height: 12px;
+        overflow: hidden;
+        margin: 10px 0 16px;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 8px;
+        transition: width 0.4s;
+        width: 0%;
+    }
+
+    #downloadStatusText {
+        font-size: 0.9em;
+        color: #718096;
+        margin-bottom: 14px;
+        min-height: 1.4em;
+    }
+
+    #downloadCloseBtn {
+        padding: 8px 24px;
+        background: #667eea;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.95em;
+        font-weight: 600;
+    }
+
+    #downloadCloseBtn:hover { background: #5568d3; }
+
+    /* PDF Links List Styles */
+    .pdf-links-list {
+        max-height: 400px;
+        overflow-y: auto;
+        text-align: left;
+        margin: 15px 0;
+    }
+
+    .pdf-links-list ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .pdf-links-list li {
+        margin: 8px 0;
+        padding: 10px 12px;
+        background: #f7fafc;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .pdf-links-list a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95em;
+    }
+
+    .pdf-links-list a:hover {
+        text-decoration: underline;
+    }
+
+    .pdf-links-list .url-hint {
+        color: #a0aec0;
+        font-size: 0.8em;
+        margin-left: 10px;
+    }
+
+    /* Mobile optimizations */
+    @media screen and (max-width: 768px) {
+        .paper-header {
+            flex-direction: column;
+        }
+
+        .paper-actions {
+            width: 100%;
+            align-items: stretch !important;
+        }
+
+        .paper-actions > div {
+            justify-content: flex-start !important;
+        }
+
+        .paper-buttons {
+            width: 100%;
+        }
+
+        .paper-buttons button {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .summary-cn {
+            font-size: 0.85em !important;
+            line-height: 1.5 !important;
+        }
+
+        .paper-abstract.collapsed {
+            max-height: 4em;
+        }
+
+        #batchBar {
+            bottom: 12px;
+            min-width: unset;
+            width: 96%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics -->
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ stats.total }}</h3>
+        <p>Total Papers</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.analyzed }}</h3>
+        <p>Analyzed</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.interested }}</h3>
+        <p>Interested</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.irrelevant }}</h3>
+        <p>Irrelevant</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.unanalyzed }}</h3>
+        <p>Unanalyzed</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.important }}</h3>
+        <p>⭐ Important</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.famous }}</h3>
+        <p>🏆 Famous</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.read }}</h3>
+        <p>📖 Read</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.unread }}</h3>
+        <p>📄 Unread</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.downloaded }}</h3>
+        <p>⬇ Downloaded</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.content_analyzed }}</h3>
+        <p>🔬 Content Analyzed</p>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+    <form method="GET" action="/" id="filterForm">
+        <div class="filter-group">
+            <label for="search">Search:</label>
+            <input type="text"
+                   id="search"
+                   name="search"
+                   value="{{ search }}"
+                   placeholder="Title, authors, arxiv_id, abstract..."
+                   class="search-box">
+
+            <label for="label">Label:</label>
+            <select id="label" name="label">
+                <option value="all" {% if label_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="interested" {% if label_filter == 'interested' %}selected{% endif %}>Interested</option>
+                <option value="irrelevant" {% if label_filter == 'irrelevant' %}selected{% endif %}>Irrelevant</option>
+                <option value="unanalyzed" {% if label_filter == 'unanalyzed' %}selected{% endif %}>Unanalyzed</option>
+            </select>
+
+            <label for="important">Important:</label>
+            <select id="important" name="important">
+                <option value="all" {% if important_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="yes" {% if important_filter == 'yes' %}selected{% endif %}>Yes ⭐</option>
+                <option value="no" {% if important_filter == 'no' %}selected{% endif %}>No</option>
+            </select>
+
+            <label for="famous">Famous:</label>
+            <select id="famous" name="famous">
+                <option value="all" {% if famous_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="yes" {% if famous_filter == 'yes' %}selected{% endif %}>Yes 🏆</option>
+                <option value="no" {% if famous_filter == 'no' %}selected{% endif %}>No</option>
+            </select>
+
+            <label for="read">Read:</label>
+            <select id="read" name="read">
+                <option value="all" {% if read_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="read" {% if read_filter == 'read' %}selected{% endif %}>Read 📖</option>
+                <option value="unread" {% if read_filter == 'unread' %}selected{% endif %}>Unread 📄</option>
+            </select>
+
+            <label for="downloaded">Downloaded:</label>
+            <select id="downloaded" name="downloaded">
+                <option value="all" {% if downloaded_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="yes" {% if downloaded_filter == 'yes' %}selected{% endif %}>Yes ⬇</option>
+                <option value="no" {% if downloaded_filter == 'no' %}selected{% endif %}>No</option>
+            </select>
+
+            <label for="content_analyzed">Content Analyzed:</label>
+            <select id="content_analyzed" name="content_analyzed">
+                <option value="all" {% if content_analyzed_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="yes" {% if content_analyzed_filter == 'yes' %}selected{% endif %}>Yes 🔬</option>
+                <option value="no" {% if content_analyzed_filter == 'no' %}selected{% endif %}>No</option>
+            </select>
+
+            <label for="sort">Sort by:</label>
+            <select id="sort" name="sort">
+                <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Date</option>
+                <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title</option>
+                <option value="arxiv_id" {% if sort_by == 'arxiv_id' %}selected{% endif %}>ArXiv ID</option>
+            </select>
+
+            <select id="order" name="order">
+                <option value="desc" {% if order == 'desc' %}selected{% endif %}>Desc</option>
+                <option value="asc" {% if order == 'asc' %}selected{% endif %}>Asc</option>
+            </select>
+
+            <button type="submit" class="btn">Apply Filters</button>
+            <a href="/" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Results info + quick-select buttons -->
+<div style="margin-bottom: 15px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <span style="color: #666;">
+        Showing {{ papers|length }} of {{ total }} papers (Page {{ page }} of {{ total_pages }})
+    </span>
+    <button class="btn btn-sm" onclick="selectAllImportant()" style="font-size:12px; padding:5px 12px; background:#f6c90e; color:#2d3748; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+        ⭐ Select All Important
+    </button>
+    <button class="btn btn-sm" onclick="selectAllFamous()" style="font-size:12px; padding:5px 12px; background:#ff6b6b; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+        🏆 Select All Famous
+    </button>
+    <button class="btn btn-sm" onclick="selectAll()" style="font-size:12px; padding:5px 12px;">Select All</button>
+    <button class="btn btn-sm btn-secondary" onclick="clearSelection()" style="font-size:12px; padding:5px 12px;">Deselect All</button>
+</div>
+
+<!-- Paper list -->
+{% if papers %}
+    {% for paper in papers %}
+    <div class="paper-card {% if paper.is_important_author %}important-paper{% endif %} {% if paper.is_famous_author %}famous-paper{% endif %}" id="card-{{ paper.arxiv_id }}" data-important="{{ 'true' if paper.is_important_author else 'false' }}" data-famous="{{ 'true' if paper.is_famous_author else 'false' }}">
+        <div class="paper-select-wrap">
+            <!-- Checkbox -->
+            <input type="checkbox" class="paper-checkbox" id="chk-{{ paper.arxiv_id }}" value="{{ paper.arxiv_id }}"
+                   onchange="onCheckboxChange(this)">
+
+            <!-- Paper content -->
+            <div class="paper-content">
+                <div class="paper-header">
+                    <div style="flex: 1;">
+                        <div class="paper-title">
+                            {% if paper.is_important_author %}
+                                <span class="badge badge-important" title="Important paper">⭐</span>
+                            {% endif %}
+                            {% if paper.is_famous_author %}
+                                <span class="badge badge-famous" title="Famous professor: {{ paper.famous_authors }}">🏆 Famous</span>
+                            {% endif %}
+                            <a href="/paper/{{ paper.arxiv_id }}">{{ paper.title or 'Untitled' }}</a>
+                        </div>
+                        <div class="paper-meta">
+                            <span><strong>ArXiv ID:</strong> {{ paper.arxiv_id }}{% if paper.version > 1 %}v{{ paper.version }}{% endif %}</span>
+                            {% if paper.publish_date %}
+                            <span><strong>Published:</strong> {{ paper.publish_date }}</span>
+                            {% endif %}
+                            <span><strong>Added:</strong> {{ paper.created_at.strftime('%Y-%m-%d %H:%M') if paper.created_at else 'N/A' }}</span>
+                            {% if paper.url %}
+                            <span><a href="{{ paper.url }}" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600;">🔗 View on ArXiv</a></span>
+                            {% endif %}
+                        </div>
+                        {% if paper.authors %}
+                        <div class="paper-meta">
+                            <strong>Authors:</strong> {{ paper.authors[:200] }}{% if paper.authors|length > 200 %}...{% endif %}
+                            {% if paper.is_famous_author and paper.famous_authors %}
+                            <span style="color: #e8521a; font-weight: 600; margin-left: 8px;" title="Famous professor: {{ paper.famous_authors }}">🏆 {{ paper.famous_authors[:80] }}{% if paper.famous_authors|length > 80 %}...{% endif %}</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="paper-actions" style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                        <!-- Status badges -->
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;">
+                            {% if paper.my_label %}
+                                {% if paper.my_label == 'interested' %}
+                                    <span class="badge badge-interested">Interested</span>
+                                {% elif paper.my_label == 'irrelevant' %}
+                                    <span class="badge badge-irrelevant">Irrelevant</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge badge-unanalyzed">Unanalyzed</span>
+                            {% endif %}
+
+                            {% if paper.is_read %}
+                                <span class="badge" style="background: #28a745; color: white;">📖 Read</span>
+                            {% else %}
+                                <span class="badge" style="background: #6c757d; color: white;">📄 Unread</span>
+                            {% endif %}
+
+                            {% if paper.is_downloaded %}
+                                <span class="badge" style="background: #17a2b8; color: white;">⬇ Downloaded</span>
+                            {% endif %}
+
+                            {% if paper.is_content_analyzed %}
+                                <span class="badge" style="background: #6f42c1; color: white;">🔬 Analyzed</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="paper-buttons" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;">
+                            <button class="btn btn-sm btn-read" onclick="toggleRead('{{ paper.arxiv_id }}', this)" style="font-size: 12px; padding: 8px 10px;">
+                                {% if paper.is_read %}Unread{% else %}Read{% endif %}
+                            </button>
+                            <button class="btn btn-sm btn-important" onclick="toggleImportant('{{ paper.arxiv_id }}', this)" style="font-size: 12px; padding: 8px 10px; background: {% if paper.is_important_author %}#f6c90e{% else %}#e2e8f0{% endif %}; color: {% if paper.is_important_author %}#2d3748{% else %}#2d3748{% endif %}; border: none; border-radius: 6px; cursor: pointer;">
+                                {% if paper.is_important_author %}⭐ Important{% else %}☆ Mark Imp{% endif %}
+                            </button>
+                            <button class="btn btn-sm btn-famous" onclick="toggleFamous('{{ paper.arxiv_id }}', this)" style="font-size: 12px; padding: 8px 10px; background: {% if paper.is_famous_author %}#ff6b6b{% else %}#e2e8f0{% endif %}; color: {% if paper.is_famous_author %}#fff{% else %}#2d3748{% endif %}; border: none; border-radius: 6px; cursor: pointer;">
+                                {% if paper.is_famous_author %}🏆 Famous{% else %}🏆 Mark Fam{% endif %}
+                            </button>
+                            <button class="btn btn-sm" onclick="toggleDownloaded('{{ paper.arxiv_id }}', this)"
+                                    style="font-size: 12px; padding: 8px 10px; background: {% if paper.is_downloaded %}#17a2b8{% else %}#e2e8f0{% endif %}; color: {% if paper.is_downloaded %}#fff{% else %}#2d3748{% endif %}; border: none; border-radius: 6px; cursor: pointer;">
+                                {% if paper.is_downloaded %}⬇ Downloaded{% else %}⬇ Mark DL{% endif %}
+                            </button>
+                            <button class="btn btn-sm" onclick="toggleContentAnalyzed('{{ paper.arxiv_id }}', this)"
+                                    style="font-size: 12px; padding: 8px 10px; background: {% if paper.is_content_analyzed %}#6f42c1{% else %}#e2e8f0{% endif %}; color: {% if paper.is_content_analyzed %}#fff{% else %}#2d3748{% endif %}; border: none; border-radius: 6px; cursor: pointer;">
+                                {% if paper.is_content_analyzed %}🔬 Analyzed{% else %}🔬 Mark CA{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {% if paper.abstract %}
+                <div class="abstract-container">
+                    <div class="paper-abstract collapsed" id="abstract-{{ paper.arxiv_id }}">
+                        {{ paper.abstract }}
+                    </div>
+                    <button class="abstract-toggle" onclick="toggleAbstract('{{ paper.arxiv_id }}')" style="background: none; border: none; color: #667eea; cursor: pointer; font-size: 0.9em; padding: 5px 0; text-decoration: underline;">
+                        Show more
+                    </button>
+                </div>
+                {% endif %}
+
+                {% if paper.summary_cn %}
+                <div class="summary-cn" style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 0.9em; word-wrap: break-word;">
+                    <strong>Chinese Summary:</strong> {{ paper.summary_cn|replace('\n', '<br>')|safe }}
+                </div>
+                {% endif %}
+
+                {% if paper.category or paper.keywords_cn %}
+                <div style="margin-top: 10px;">
+                    {% if paper.category %}
+                    <div class="keywords">
+                        {% for keyword in paper.category.split(', ') %}
+                        <span class="keyword-tag">{{ keyword }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if paper.keywords_cn %}
+                    <div class="keywords" style="margin-top: 5px;">
+                        {% for keyword in paper.keywords_cn.split(', ') %}
+                        <span class="keyword-tag">{{ keyword }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div><!-- /.paper-content -->
+        </div><!-- /.paper-select-wrap -->
+    </div>
+    {% endfor %}
+{% else %}
+    <div style="text-align: center; padding: 40px; color: #666;">
+        <p style="font-size: 1.2em;">No papers found matching your criteria.</p>
+    </div>
+{% endif %}
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="?page={{ page - 1 }}&search={{ search }}&label={{ label_filter }}&important={{ important_filter }}&famous={{ famous_filter }}&read={{ read_filter }}&downloaded={{ downloaded_filter }}&content_analyzed={{ content_analyzed_filter }}&sort={{ sort_by }}&order={{ order }}&per_page={{ per_page }}">« Previous</a>
+    {% endif %}
+
+    {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <span class="current">{{ p }}</span>
+        {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+        <a href="?page={{ p }}&search={{ search }}&label={{ label_filter }}&important={{ important_filter }}&famous={{ famous_filter }}&read={{ read_filter }}&downloaded={{ downloaded_filter }}&content_analyzed={{ content_analyzed_filter }}&sort={{ sort_by }}&order={{ order }}&per_page={{ per_page }}">{{ p }}</a>
+        {% elif p == page - 3 or p == page + 3 %}
+        <span>...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a href="?page={{ page + 1 }}&search={{ search }}&label={{ label_filter }}&important={{ important_filter }}&famous={{ famous_filter }}&read={{ read_filter }}&downloaded={{ downloaded_filter }}&content_analyzed={{ content_analyzed_filter }}&sort={{ sort_by }}&order={{ order }}&per_page={{ per_page }}">Next »</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Floating batch toolbar -->
+<div id="batchBar">
+    <div class="batch-count">Selected: <span id="selectedCount">0</span></div>
+    <button class="btn-batch btn-batch-important" onclick="batchMarkImportant()">⭐ Mark Important</button>
+    <button class="btn-batch btn-batch-read" onclick="batchMarkRead()">📖 Mark Read</button>
+    <button class="btn-batch btn-batch-analyze" id="batchAnalyzeBtn" onclick="startBatchAnalyze()">🔬 Batch Analyze</button>
+    <button class="btn-batch btn-batch-download" id="batchDownloadBtn" onclick="startBatchDownload()">⬇ Batch Download</button>
+    <button class="btn-batch btn-batch-clear" onclick="clearSelection()">✕ Clear</button>
+</div>
+
+<!-- Download links overlay -->
+<div id="downloadOverlay">
+    <div id="downloadModal">
+        <h3>⬇ Download PDFs</h3>
+        <div class="pdf-links-list" id="pdfLinksContainer">
+            <!-- Links will be inserted here -->
+        </div>
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+            <button onclick="copyAllPdfLinks()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px;">📋 Copy All Links</button>
+            <button onclick="closeDownloadOverlay()" style="padding: 10px 20px; background: #e2e8f0; color: #2d3748; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Analyze progress overlay -->
+<div id="analyzeOverlay">
+    <div id="analyzeModal">
+        <h3>🔬 Analyzing Papers</h3>
+        <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="analyzeProgressFill"></div>
+        </div>
+        <div id="analyzeStatusText">Preparing...</div>
+        <button id="analyzeCloseBtn" onclick="closeAnalyzeOverlay()" disabled>Close</button>
+    </div>
+</div>
+
+<script>
+/* ─── Selection state ─────────────────────────────────── */
+const selectedIds = new Set();
+
+function onCheckboxChange(checkbox) {
+    const arxivId = checkbox.value;
+    const card = document.getElementById('card-' + arxivId);
+    if (checkbox.checked) {
+        selectedIds.add(arxivId);
+        card.classList.add('selected');
+    } else {
+        selectedIds.delete(arxivId);
+        card.classList.remove('selected');
+    }
+    updateBatchBar();
+}
+
+function updateBatchBar() {
+    const bar = document.getElementById('batchBar');
+    document.getElementById('selectedCount').textContent = selectedIds.size;
+    if (selectedIds.size > 0) {
+        bar.classList.add('visible');
+    } else {
+        bar.classList.remove('visible');
+    }
+}
+
+function selectAll() {
+    document.querySelectorAll('.paper-checkbox').forEach(cb => {
+        cb.checked = true;
+        const card = document.getElementById('card-' + cb.value);
+        selectedIds.add(cb.value);
+        card.classList.add('selected');
+    });
+    updateBatchBar();
+}
+
+function selectAllImportant() {
+    document.querySelectorAll('.paper-card[data-important="true"] .paper-checkbox').forEach(cb => {
+        cb.checked = true;
+        const card = document.getElementById('card-' + cb.value);
+        selectedIds.add(cb.value);
+        card.classList.add('selected');
+    });
+    updateBatchBar();
+}
+
+function selectAllFamous() {
+    document.querySelectorAll('.paper-card[data-famous="true"] .paper-checkbox').forEach(cb => {
+        cb.checked = true;
+        const card = document.getElementById('card-' + cb.value);
+        selectedIds.add(cb.value);
+        card.classList.add('selected');
+    });
+    updateBatchBar();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.paper-checkbox').forEach(cb => {
+        cb.checked = false;
+        const card = document.getElementById('card-' + cb.value);
+        card.classList.remove('selected');
+    });
+    selectedIds.clear();
+    updateBatchBar();
+}
+
+/* ─── Batch mark important ────────────────────────────── */
+function batchMarkImportant() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Mark ${selectedIds.size} papers as important?`)) return;
+    const ids = Array.from(selectedIds);
+    let done = 0;
+    ids.forEach(arxivId => {
+        fetch(`/api/paper/${arxivId}/mark_important`, { method: 'POST' })
+            .then(() => { done++; if (done === ids.length) location.reload(); })
+            .catch(() => { done++; if (done === ids.length) location.reload(); });
+    });
+}
+
+/* ─── Batch mark read ─────────────────────────────────── */
+function batchMarkRead() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Mark ${selectedIds.size} selected papers as read?`)) return;
+
+    fetch('/api/batch/mark_read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ arxiv_ids: Array.from(selectedIds) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+/* ─── Batch analyze ───────────────────────────────────── */
+let _analyzePollInterval = null;
+
+function startBatchAnalyze() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Analyze ${selectedIds.size} selected papers?\nThis may take a while.`)) return;
+
+    const btn = document.getElementById('batchAnalyzeBtn');
+    btn.disabled = true;
+
+    fetch('/api/batch/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ arxiv_ids: Array.from(selectedIds) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            alert('Error: ' + (data.error || 'Unknown error'));
+            btn.disabled = false;
+            return;
+        }
+        showAnalyzeOverlay();
+        pollAnalyzeStatus();
+    })
+    .catch(err => {
+        alert('Network error: ' + err);
+        btn.disabled = false;
+    });
+}
+
+function showAnalyzeOverlay() {
+    document.getElementById('analyzeOverlay').classList.add('visible');
+    document.getElementById('analyzeCloseBtn').disabled = true;
+    document.getElementById('analyzeProgressFill').style.width = '0%';
+    document.getElementById('analyzeStatusText').textContent = 'Starting...';
+}
+
+function closeAnalyzeOverlay() {
+    document.getElementById('analyzeOverlay').classList.remove('visible');
+    if (_analyzePollInterval) {
+        clearInterval(_analyzePollInterval);
+        _analyzePollInterval = null;
+    }
+    document.getElementById('batchAnalyzeBtn').disabled = false;
+    location.reload();
+}
+
+function pollAnalyzeStatus() {
+    _analyzePollInterval = setInterval(() => {
+        fetch('/api/analyze/status')
+            .then(r => r.json())
+            .then(state => {
+                const pct = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
+                document.getElementById('analyzeProgressFill').style.width = pct + '%';
+                document.getElementById('analyzeStatusText').textContent =
+                    `${state.done} / ${state.total} done` +
+                    (state.failed.length > 0 ? ` | ${state.failed.length} failed` : '');
+
+                if (!state.running && state.done >= state.total && state.total > 0) {
+                    clearInterval(_analyzePollInterval);
+                    _analyzePollInterval = null;
+                    document.getElementById('analyzeStatusText').textContent =
+                        `Complete: ${state.succeeded.length} analyzed, ${state.failed.length} failed.`;
+                    document.getElementById('analyzeCloseBtn').disabled = false;
+                }
+            });
+    }, 1200);
+}
+
+/* ─── Batch download ──────────────────────────────────── */
+function startBatchDownload() {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+
+    // Generate PDF links list
+    const container = document.getElementById('pdfLinksContainer');
+    let html = '<ul>';
+    window._pdfLinks = [];
+
+    ids.forEach(arxivId => {
+        const pdfUrl = `https://arxiv.org/pdf/${arxivId}.pdf`;
+        window._pdfLinks.push(pdfUrl);
+        html += `<li>
+            <a href="${pdfUrl}" target="_blank">${arxivId}.pdf</a>
+            <span class="url-hint">(${pdfUrl})</span>
+        </li>`;
+    });
+    html += '</ul>';
+
+    container.innerHTML = html;
+    document.getElementById('downloadOverlay').classList.add('visible');
+}
+
+function copyAllPdfLinks() {
+    if (window._pdfLinks && window._pdfLinks.length > 0) {
+        const text = window._pdfLinks.join('\n');
+        navigator.clipboard.writeText(text).then(() => {
+            alert('All PDF links copied to clipboard!');
+        }).catch(() => {
+            alert('Failed to copy. Please select and copy manually.');
+        });
+    }
+}
+
+function closeDownloadOverlay() {
+    document.getElementById('downloadOverlay').classList.remove('visible');
+}
+
+/* ─── Single-paper actions ────────────────────────────── */
+function toggleRead(arxivId, button) {
+    fetch(`/api/paper/${arxivId}/toggle_read`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
+    .catch(() => alert('Network error'));
+}
+
+function toggleImportant(arxivId, button) {
+    fetch(`/api/paper/${arxivId}/toggle_important`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
+    .catch(() => alert('Network error'));
+}
+
+function toggleFamous(arxivId, button) {
+    fetch(`/api/paper/${arxivId}/toggle_famous`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
+    .catch(() => alert('Network error'));
+}
+
+function toggleDownloaded(arxivId, button) {
+    fetch(`/api/paper/${arxivId}/toggle_downloaded`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
+    .catch(() => alert('Network error'));
+}
+
+function toggleContentAnalyzed(arxivId, button) {
+    fetch(`/api/paper/${arxivId}/toggle_content_analyzed`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
+    .catch(() => alert('Network error'));
+}
+
+function toggleAbstract(arxivId) {
+    const abstractDiv = document.getElementById('abstract-' + arxivId);
+    const button = event.target;
+    if (abstractDiv.classList.contains('collapsed')) {
+        abstractDiv.classList.remove('collapsed');
+        abstractDiv.classList.add('expanded');
+        button.textContent = 'Show less';
+    } else {
+        abstractDiv.classList.remove('expanded');
+        abstractDiv.classList.add('collapsed');
+        button.textContent = 'Show more';
+    }
+}
+</script>
+{% endblock %}

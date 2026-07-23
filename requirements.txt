@@ -1,0 +1,6 @@
+flask
+sqlalchemy
+openai
+requests
+markdown
+jinja2
