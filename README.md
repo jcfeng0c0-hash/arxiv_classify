@@ -1,236 +1,153 @@
-# arxiv_classify v2.0.0
+# arxiv_classify 3.0.0
 
-Automated arXiv paper classification, translation, and structured analysis system with a Flask-based WebUI.
+本项目从 arXiv 邮件摘要中提取论文，使用 DeepSeek、Kimi 或本地 Ollama 进行两阶段筛选与分析，并提供适配桌面和手机的 Flask WebUI。
 
----
+3.0 的主要变化：
 
-## Table of Contents
+- 先用短 prompt 只做 interested/irrelevant 分类；仅对 interested 论文翻译和结构化分析，减少模型消耗。
+- 保留分类版本、命中规则及失败状态，分类与详细分析分别缓存。
+- 自动提取 interested 论文前五幅编号图及原始图注，不调用 AI。
+- 手机卡片模式支持摘要/图片切换、独立滚动、上一篇/下一篇和快速阅读标记。
+- 可选 Zotero 导入、邮件报告、微信公众号草稿、Cloudflare 临时公网隧道。
+- 所有凭据从本地 `.env` 或环境变量读取；仓库不包含个人密钥、邮箱、数据库、日志或论文缓存。
 
-1. [Project Overview](#project-overview)
-2. [Architecture](#architecture)
-3. [Quick Start](#quick-start)
-4. [Configuration: config.py](#configuration-configpy)
-5. [Research Interest & Important Authors](#research-interest--important-authors)
-6. [WebUI Features](#webui-features)
-7. [Mobile Access](#mobile-access)
-8. [Module Reference](#module-reference)
+## 快速开始
 
----
-
-## Project Overview
-
-This tool automatically:
-
-- Fetches the daily arXiv mailing list from QQ Mail via IMAP
-- Parses paper metadata (title, authors, abstract, arXiv ID)
-- Classifies papers as **interested / irrelevant** based on your research interests using DeepSeek or local Ollama
-- Translates abstracts to Chinese
-- Extracts structured analysis: research content, methods, discussion, and conclusion
-- Stores everything in a local SQLite database
-- Provides a web-based paper browser (Flask)
-- Optionally pushes daily summaries to WeChat Public Account
-
----
-
-## Architecture
-
-```
-arrow_classify-2.0.0-public/
-├── __main__.py            # CLI entry: fetch email → parse → classify → store → send
-├── webui.py               # Flask web app (port 5000)
-├── migrate_db.py          # Database migration script
-├── run_webui.sh           # Simple WebUI launcher
-├── start_webui.sh         # WebUI launcher with LAN IP hints
-├── requirements.txt       # Python dependencies
-├── email_list.txt         # Email receivers (one per line)
-├── src/
-│   ├── config.py          # All API keys and credentials (edit this first)
-│   ├── models.py          # SQLAlchemy Paper model + DB session
-│   ├── model_inference.py # DeepSeek/Ollama: classify, translate, structured analysis
-│   ├── extract_email.py   # Parse arXiv email/XML to paper dicts
-│   ├── get_file_from_email.py  # IMAP connection and mail fetching
-│   ├── file_writer.py     # JSON → Markdown export
-│   ├── send_email.py      # SMTP email sending
-│   └── wechat_public.py   # WeChat Public Account upload
-├── templates/             # Flask HTML templates
-├── downloads/             # Cached emails, XML, JSON, HTML and PDFs
-└── md/                    # Daily markdown summaries
-```
-
----
-
-## Quick Start
-
-### 1. Install Dependencies
+需要 Python 3.10 或更新版本。
 
 ```bash
-pip install -r requirements.txt
-# For local inference (optional):
-# Install Ollama and pull deepseek-r1:14b
+git clone https://github.com/jcfeng0c0-hash/arxiv_classify.git
+cd arxiv_classify
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+
+cp .env.example .env
 ```
 
-### 2. Configure Keys
+编辑 `.env`，至少填写所选推理服务的 API Key，例如：
 
-Edit `src/config.py` — see [Configuration](#configuration-configpy) below.
-
-### 3. Customize Research Interests
-
-Edit the top of `src/model_inference.py`:
-
-```python
-RESEARCH_REQUIREMENTS = """
-Your research interests here
-"""
-
-IMPORTANT_AUTHORS = [
-    # "Author Name",
-]
+```dotenv
+API_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your_api_key_here
 ```
 
-### 4. Set Email Receivers
+然后直接启动：
 
-Edit `email_list.txt`:
+```bash
+./start_webui.sh
+```
+
+浏览器访问 <http://127.0.0.1:5000>。首次启动会自动创建并迁移本地 SQLite 数据库。
+
+如果不想创建虚拟环境，也可以激活已有 Python 环境后运行；脚本依次使用 `ARXIV_PYTHON`、项目 `.venv`、`python3`、`python`。
+
+## 配置
+
+不要修改 `src/config.py` 填入真实凭据。复制 `.env.example` 为 `.env` 后配置；`.env` 已被 Git 忽略。
+
+常用设置：
+
+| 配置项 | 用途 | 必需 |
+| --- | --- | --- |
+| `API_PROVIDER` | `deepseek`、`kimi` 或 `local` | 是 |
+| `DEEPSEEK_API_KEY` | DeepSeek 在线推理 | 使用 DeepSeek 时 |
+| `KIMI_API_KEY` | Kimi 在线推理 | 使用 Kimi 时 |
+| `EMAIL_USER` / `EMAIL_PASS` | QQ 邮箱及授权码，用于收取 arXiv 邮件和发送报告 | 邮件流程时 |
+| `ARXIV_MAIL_FOLDER` | arXiv 邮件所在 IMAP 文件夹，默认 `INBOX` | 否 |
+| `EMAIL_RECIPIENTS` | 报告及隧道链接收件人，多个地址用逗号分隔 | 发送邮件时 |
+| `WECHAT_*` | 微信公众号草稿接口 | 使用公众号时 |
+| `ARXIV_WEBUI_WRITE_TOKEN` | Zotero 写入操作密码 | 使用 Zotero 导入时 |
+
+也可复制 `email_list.example.txt` 为 `email_list.txt`，每行填写一个收件地址。该文件同样不会被 Git 跟踪。
+
+本地 Ollama 模式需要 Ollama 已在 `localhost:11434` 运行，并准备代码中指定的本地模型。
+
+## 启动方式
+
+本地 WebUI：
+
+```bash
+./start_webui.sh
+```
+
+Cloudflare 临时公网地址（需要预先安装 `cloudflared`）：
+
+```bash
+./start_webui_cloudflare.sh
+./start_webui_cloudflare.sh status
+./start_webui_cloudflare.sh stop
+```
+
+如果配置了邮箱和收件人，Cloudflare 地址生成后会自动发送邮件；未配置邮件不会影响 WebUI 和隧道运行。Zotero 未安装时也会自动跳过。
+
+公网隧道会让任何得到链接的人访问 WebUI。不要公开转发临时地址，并建议为写操作设置 `ARXIV_WEBUI_WRITE_TOKEN`。
+
+## 每日处理
+
+完整的已配置流程：
+
+```bash
+./run_daily.sh
+```
+
+`--all` 只启用已配置的邮件和微信公众号输出；未填写相应凭据时自动跳过。也可以指定步骤：
+
+```bash
+python __main__.py --fetch-email --extract-data
+python __main__.py --analyze-data --api-provider deepseek
+python __main__.py --extract-figures
+python __main__.py --generate-md
+```
+
+## 分类 Prompt
+
+筛选标准完整保留在 [`src/classification_policy.py`](src/classification_policy.py)。当前规则覆盖：
+
+- 星系内部气体状态、分布、形态和运动学；
+- 星系内部气体输运、反馈和物质循环；
+- 用分子丰度或化学模型解释气体性质；
+- 气体与恒星形成率、效率和耗尽时间的关系；
+- 光谱、数据立方体、谱线成图和气体结构识别的新处理工具。
+
+以 CGM、高红移、恒星结构、纯 AGN/黑洞性质或信息不足为主的论文按规则排除。修改该文件即可定制研究兴趣；prompt 内容本身不包含凭据。
+
+## 图片、缓存和隐私
+
+- `arxiv.db`、`downloads/`、`md/`、`logs/`、`.env`、邮件列表和运行 PID 均在 `.gitignore` 中。
+- 图片优先从 arXiv HTML 提取；没有 HTML 时使用 PDF 布局启发式裁剪。
+- 模型缓存只保存在本地 `downloads/inference_cache/`，不会上传到 Git。
+- 发布前可运行文末的敏感信息检查。
+
+## 测试
+
+```bash
+python -m pytest tests -q
+node tests/mobile_card_gestures.cjs
+node tests/mobile_card_review.cjs
+```
+
+基础敏感信息检查：
+
+```bash
+git grep -n -I -E '/home/[^/]+|API_KEY=.+|EMAIL_PASS=.+'
+```
+
+## 项目结构
 
 ```text
-friend@example.com
-yourself@example.com
+src/classification_policy.py  筛选 prompt 与规则版本
+src/model_inference.py        分类、翻译和结构化分析
+src/paper_figures.py          前五幅论文图及图注提取
+src/arxiv_zotero.py           Zotero 导入
+webui.py                      Flask WebUI
+templates/                    桌面及手机页面
+__main__.py                   每日处理命令行入口
+start_webui.sh                本地启动
+start_webui_cloudflare.sh     WebUI + Cloudflare 临时隧道
 ```
 
-### 5. Initialize Database
+## License
 
-```bash
-python migrate_db.py
-```
-
-### 6. Run the Pipeline
-
-```bash
-# Fetch latest arXiv email, classify and store papers
-python __main__.py --all --use-api
-
-# Run WebUI
-bash start_webui.sh
-# or: python webui.py
-# Access: http://localhost:5000
-```
-
----
-
-## Configuration: config.py
-
-All sensitive credentials are centralized in `src/config.py`. **Do not commit this file to public repositories.**
-
-```python
-# DeepSeek API key (https://platform.deepseek.com)
-DEEPSEEK_API_KEY = "sk-your-deepseek-api-key-here"
-
-# QQ Mail account and authorization code
-EMAIL_USER = "your_qq@qq.com"
-EMAIL_PASS = "your_qq_auth_code"
-
-# WeChat Public Account credentials (optional)
-WECHAT_APPID = "your-wechat-appid"
-WECHAT_SECRET = "your-wechat-secret"
-WECHAT_THUMB_MEDIA_ID = "your-thumb-media-id"
-```
-
-For QQ Mail, generate an authorization code at:
-https://mail.qq.com → Settings → Accounts → POP3/IMAP/SMTP
-
-Also update the IMAP folder name in `__main__.py` if your arXiv folder is not named `arxiv`:
-
-```python
-folder_name = 'arxiv'  # or 'INBOX' if you forward arXiv mails there
-```
-
----
-
-## Research Interest & Important Authors
-
-Open `src/model_inference.py` and customize the two variables at the top:
-
-- `RESEARCH_REQUIREMENTS`: describe what papers you care about. The LLM uses this to label papers as `interested` or `irrelevant`.
-- `IMPORTANT_AUTHORS`: list of author names. Papers by these authors are always highlighted with a ⭐ marker.
-
----
-
-## WebUI Features
-
-Start the server with `bash start_webui.sh` then open `http://<your-ip>:5000`.
-
-### Paper List (`/`)
-- Full-text search across title, authors, abstract, and arXiv ID
-- Filter by label (interested / irrelevant / unanalyzed), read status, download status, content analyzed
-- Filter by important-author and famous-author tags
-- Sort by any field
-- Pagination
-
-### Paper Detail (`/paper/<arxiv_id>`)
-- Full metadata display
-- Collapsible English abstract
-- Chinese abstract translation
-- **Structured Analysis Panel** (v2.0.0 new):
-  - Research Content
-  - Methods
-  - Discussion & Analysis
-  - Conclusion
-- Action buttons: mark read, mark important, mark downloaded, mark content-analyzed
-
-### API Endpoints
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/stats` | GET | Database statistics |
-| `/api/settings` | GET/POST | Read/update inference mode |
-| `/api/paper/<id>/toggle_read` | POST | Toggle read status |
-| `/api/paper/<id>/toggle_important` | POST | Toggle important status |
-| `/api/paper/<id>/mark_important` | POST | Mark as important |
-| `/api/paper/<id>/toggle_famous` | POST | Toggle famous status |
-| `/api/paper/<id>/toggle_downloaded` | POST | Toggle downloaded status |
-| `/api/paper/<id>/toggle_content_analyzed` | POST | Toggle content-analyzed status |
-| `/api/paper/<id>/notes` | POST | Save user notes |
-| `/api/paper/<id>/analyze` | POST | Run AI analysis on demand |
-| `/api/batch/download` | POST | Batch download PDFs |
-| `/api/download/status` | GET | Download progress |
-| `/api/download/zip` | GET | Download zip of PDFs |
-| `/api/batch/analyze` | POST | Batch analyze papers |
-| `/api/analyze/status` | GET | Analysis progress |
-
----
-
-## Mobile Access
-
-1. Start the server: `bash start_webui.sh` (prints your LAN IP automatically)
-2. Connect your phone to the same Wi-Fi network
-3. Open `http://<LAN-IP>:5000` in your mobile browser
-
-The WebUI is responsive with mobile-optimized layouts, touch-friendly buttons, and collapsible abstract sections.
-
----
-
-## Module Reference
-
-### `src/config.py`
-Central credentials store. Edit before first run.
-
-### `src/model_inference.py`
-- `analyze_paper_relevance(paper, use_api, api_key, requirements)` — Classifies the paper and returns `Type`, `keywords`, `keywords_CN`, `Abstract_CN`, `research_content`, `methods`, `discussion`, `conclusion`.
-- `translate_paper_abstract(paper)` — Standalone translation via local Ollama.
-- `identify_famous_authors(authors, use_api, api_key)` — Uses LLM to detect well-known professors in the author list.
-
-### `src/models.py`
-SQLAlchemy model `Paper` with fields for metadata, analysis results, read/download status, and user notes.
-
-### `src/get_file_from_email.py`
-IMAP-based email fetcher for QQ Mail.
-
-### `src/extract_email.py`
-Parses arXiv mailing list emails/XML into structured paper dictionaries.
-
-### `src/send_email.py`
-Sends daily summary reports via SMTP with markdown/HTML attachments.
-
-### `src/wechat_public.py`
-Uploads markdown-converted daily summaries as WeChat Public Account draft articles.
-
-### `src/file_writer.py`
-Exports paper data to Markdown files organized by date and relevance.
+MIT License，见 [`LICENSE`](LICENSE)。

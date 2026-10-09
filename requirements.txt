@@ -4,3 +4,7 @@ openai
 requests
 markdown
 jinja2
+beautifulsoup4
+Pillow
+PyMuPDF>=1.24
+pytest

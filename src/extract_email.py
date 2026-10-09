@@ -9,14 +9,13 @@ def parse_eml(file_path):
 
 def split_entries(body):
     """
-    Split the body by the specific delimiter and return a list where each element
-    is a "paper entry" string.
+    根据特定分隔符拆分正文，返回一个列表，每个元素就是一个“论文条目”字符串。
     """
     return body.split('\n\\\\\na')
 
 def parse_entry(entry):
     """
-    Parse a single paper entry and return a dict containing the paper fields.
+    解析单个论文条目，返回一个 dict 包含论文字段。
     """
     paper = {}
     lines = entry.split('\n')
@@ -29,12 +28,12 @@ def parse_entry(entry):
         line = line.strip()
         if line.startswith('rXiv:'):
             raw_id = line.split(':', 1)[1].strip()
-            # Clean the ID: remove (*cross-listing*) and similar markers
+            # 清理 ID：移除 (*cross-listing*) 等标记
             raw_id = re.sub(r'\s*\([^)]*cross-listing[^)]*\)', '', raw_id, flags=re.IGNORECASE)
-            raw_id = re.sub(r'\s*\([^)]*\)\s*$', '', raw_id)  # Remove trailing parenthetical content
+            raw_id = re.sub(r'\s*\([^)]*\)\s*$', '', raw_id)  # 移除末尾的括号内容
             paper['id'] = raw_id.strip()
         elif line.startswith('Date:'):
-            # Remove extra characters such as (v1)
+            # 去掉多余字符，比如 (v1) 之类
             date_str = re.sub(r'Date:| \(.*\)', '', line).strip()
             paper['date'] = date_str
             collecting_title = False
@@ -50,7 +49,7 @@ def parse_entry(entry):
         elif line.startswith('%%--'):
             break
         elif line.startswith('\\\\'):
-            # Toggle abstract collection state
+            # 切换收集摘要的状态
             if is_collecting:
                 break
             else:

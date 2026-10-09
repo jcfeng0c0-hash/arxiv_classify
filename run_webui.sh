@@ -1,6 +1,2 @@
-#!/bin/bash
-# Script to run the ArXiv Paper Database Web UI
-
-cd "$(dirname "$0")"
-python3 webui.py
-
+#!/usr/bin/env bash
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/start_webui.sh" "$@"

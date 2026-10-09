@@ -1,0 +1,44 @@
+# Local secrets
+.env
+config.sh
+email_list.txt
+
+# Runtime data and personal paper collections
+arxiv.db
+arxiv.db-*
+*.db
+*.sqlite*
+downloads/*
+!downloads/.gitkeep
+md/*
+!md/.gitkeep
+logs/*
+!logs/.gitkeep
+*.log
+*.eml
+
+# Runtime state
+.cloudflare_url.txt
+.webui_tunnel.pid*
+.daily.lock
+
+# Python / tests / editors
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+
+# Local migrations and project notes
+migration/
+project_Readme/
+
+# Local backups
+*.bak
+*.backup
+*~

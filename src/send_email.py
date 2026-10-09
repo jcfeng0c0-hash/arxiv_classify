@@ -4,41 +4,38 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 from email.header import Header
-import base64
 import os
 from datetime import datetime
 
-# Email domain
-mail_domain = '@qq.com'
-
 def send_email_with_attachment(sender_email, password, receiver_email, attachment_path):
     """
-    Send an email with attachments.
-    :param sender_email: Sender email address.
-    :param password: Sender email password (authorization code for QQ Mail).
-    :param receiver_email: Receiver email address(es); can be a single address or a list.
-    :param attachment_path: Path(s) to the attachment(s).
+    发送带有附件的邮件
+    :param sender_email: 发件人邮箱
+    :param password: 发件人邮箱密码
+    :param receiver_email: 收件人邮箱地址，可以是单个或多个
+    :param attachment_path: 附件的文件路径
     """
-    # Get today's date
+    # 获取当天日期
     current_date = datetime.now().strftime("%Y-%m-%d")
 
-    # Create MIME message
+    # 创建MIME对象
     message = MIMEMultipart()
     message['From'] = Header(f"<{sender_email}>")
-    message['To'] = Header(f"<{receiver_email}>")
+    recipients = receiver_email if isinstance(receiver_email, list) else [receiver_email]
+    message['To'] = ', '.join(recipients)
 
-    # Email subject
+    # 邮件主题
     subject = f'Arxiv Daily, ({current_date})'
     message['Subject'] = Header(subject, 'utf-8')
 
-    # Email body
-    text = f"Paper classification results ({current_date}):\n\n"
+    # 邮件正文
+    text = f"论文分类结果({current_date})：\n\n"
     body = MIMEText(text, 'plain', 'utf-8')
     message.attach(body)
 
-    # Attachment handling (supports single or multiple attachments)
+    # 附件处理（支持单个或多个附件）
     if attachment_path:
-        # Ensure it is a list
+        # 确保是列表格式
         if not isinstance(attachment_path, list):
             attachment_path = [attachment_path]
         for path in attachment_path:
@@ -51,13 +48,11 @@ def send_email_with_attachment(sender_email, password, receiver_email, attachmen
                     part.add_header('Content-Disposition', f'attachment; filename={filename}')
                     message.attach(part)
 
-    # Create SMTP object and send the email
+    # 创建SMTP对象并发送邮件
     try:
-        server = smtplib.SMTP_SSL(host='smtp.qq.com', port=465)  # Use SSL encryption
-        server.login(sender_email, password)
-        server.sendmail(sender_email, receiver_email, message.as_string())
-        print("Email sent successfully")
+        with smtplib.SMTP_SSL(host='smtp.qq.com', port=465, timeout=20) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, recipients, message.as_string())
+        print("邮件发送成功")
     except Exception as e:
-        print("Email sending failed:", e)
-    finally:
-        server.quit()
+        print("邮件发送失败:", type(e).__name__)

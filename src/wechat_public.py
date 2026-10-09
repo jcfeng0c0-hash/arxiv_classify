@@ -18,7 +18,7 @@ def upload_thumb_image(access_token, img_path):
     if 'media_id' in res:
         return res['media_id']
     else:
-        raise Exception("Cover image upload failed", res)
+        raise Exception("封面图上传失败", res)
 
 
 def upload_article_draft(access_token, title, author, content_html, digest, thumb_media_id):
@@ -45,12 +45,12 @@ def upload_article_draft(access_token, title, author, content_html, digest, thum
     try:
         result = res.json()
     except Exception as e:
-        raise Exception("Unable to parse WeChat response; possible encoding issue", res.text)
+        raise Exception("无法解析微信返回内容，可能是编码问题", res.text)
 
     if 'media_id' in result:
         return result['media_id']
     else:
-        raise Exception("Draft upload failed: ", json.dumps(result, ensure_ascii=False, indent=2))
+        raise Exception("草稿上传失败：", json.dumps(result, ensure_ascii=False, indent=2))
 
 
 def publish_article(access_token, media_id):
@@ -59,7 +59,7 @@ def publish_article(access_token, media_id):
     if 'publish_id' in res:
         return res['publish_id']
     else:
-        raise Exception("Publish failed", res)
+        raise Exception("发布失败", res)
 
 
 def get_publish_result(access_token, publish_id):
@@ -74,29 +74,30 @@ TITLE = "2025-06-24.md"
 
 #COVER_IMG_PATH = "cover.png"
 
-#MARKDOWN_PATH = "./md/arxiv_2025-06-24.md"
+# MARKDOWN_PATH is supplied by the caller.
+
+
 
 
 
 
 def upload_main(MARKDOWN_PATH, TITLE='Arxiv Daily'):
-    from src.config import WECHAT_APPID, WECHAT_SECRET, WECHAT_THUMB_MEDIA_ID
+    from src.config import WECHAT_APPID, WECHAT_SECRET, WECHAT_THUMB_MEDIA_ID, WECHAT_AUTHOR
     appid = WECHAT_APPID
     secret = WECHAT_SECRET
     APPID = appid
     APPSECRET = secret
-    AUTHOR = "your_name"
+    AUTHOR = WECHAT_AUTHOR
     DIGEST = "Arxiv Daily"
 
     access_token = get_access_token(APPID, APPSECRET)
-    print("[1] access_token obtained successfully")
+    print("[1] access_token 获取成功")
     thumb_media_id = WECHAT_THUMB_MEDIA_ID
-    print("[2] Cover image uploaded successfully:", thumb_media_id)
+    print("[2] 封面图上传成功：", thumb_media_id)
 
     with open(MARKDOWN_PATH, 'r', encoding='utf-8') as f:
         md_text = f.read()
     html_text = markdown.markdown(md_text)
 
-
     media_id = upload_article_draft(access_token, TITLE, AUTHOR, html_text, DIGEST, thumb_media_id)
-    print("[3] Article draft uploaded successfully:", media_id)
+    print("[3] 图文草稿上传成功：", media_id)

@@ -2,70 +2,337 @@
 
 {% block extra_css %}
 <style>
-    /* Abstract collapse */
+    /* ── Abstract collapse ───────────────────────────────────────── */
     .abstract-container { position: relative; }
-    .abstract-content.collapsed { max-height: 6em; overflow: hidden; position: relative; }
+    .abstract-content.collapsed {
+        max-height: 6em;
+        overflow: hidden;
+        position: relative;
+    }
     .abstract-content.collapsed::after {
         content: '';
-        position: absolute; bottom: 0; left: 0; right: 0; height: 3em;
-        background: linear-gradient(to bottom, rgba(248,249,250,0), rgba(248,249,250,1));
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2.5em;
+        background: linear-gradient(to bottom, transparent, var(--bg-muted));
     }
     .abstract-content.expanded { max-height: none; }
     .abstract-content.expanded::after { display: none; }
-    .abstract-toggle-detail:hover, .abstract-toggle-detail:active { background: #5568d3 !important; }
 
-    /* ── Structured Analysis Panel ── */
+    .abstract-toggle-detail {
+        background: var(--accent);
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.85em;
+        padding: 6px 14px;
+        border-radius: 6px;
+        margin-top: 8px;
+        min-height: 32px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .abstract-toggle-detail:hover, .abstract-toggle-detail:active {
+        background: var(--accent-hover);
+    }
+
+    /* ── Detail header ───────────────────────────────────────────── */
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        gap: 12px;
+    }
+
+    .detail-header h1 {
+        flex: 1;
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1.3em;
+        line-height: 1.4;
+        font-weight: 700;
+    }
+
+    .detail-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-end;
+        flex-shrink: 0;
+    }
+
+    .detail-status-badges {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .detail-buttons {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .detail-buttons .btn {
+        font-size: 0.78em;
+        padding: 5px 10px;
+        min-height: 30px;
+    }
+
+    .btn-toggle {
+        background: var(--bg-muted);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+    }
+
+    .btn-toggle:hover {
+        background: var(--bg-hover);
+    }
+
+    .btn-toggle.active-important {
+        background: var(--badge-important-bg);
+        color: var(--badge-important-text);
+        border-color: var(--badge-important-bg);
+    }
+
+    .btn-toggle.active-famous {
+        background: var(--badge-famous-bg);
+        color: var(--badge-famous-text);
+        border-color: var(--badge-famous-bg);
+    }
+
+    .btn-toggle.active-downloaded {
+        background: var(--badge-downloaded-bg);
+        color: var(--badge-downloaded-text);
+        border-color: var(--badge-downloaded-bg);
+    }
+
+    .btn-toggle.active-analyzed {
+        background: var(--badge-analyzed-bg);
+        color: var(--badge-analyzed-text);
+        border-color: var(--badge-analyzed-bg);
+    }
+
+    .btn-pdf {
+        background: #e8521a;
+        color: #fff;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .btn-pdf:hover {
+        background: #c44010;
+    }
+
+    .btn-analyze-ai {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .btn-analyze-ai:hover {
+        background: var(--accent-hover);
+    }
+
+    /* ── Structured Analysis Panel ───────────────────────────────── */
     .analysis-panel {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        gap: 10px;
         margin-top: 4px;
     }
+
     .analysis-card {
         border-radius: 8px;
         overflow: hidden;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        transition: background-color 0.3s, border-color 0.3s;
     }
+
     .analysis-card-header {
         display: flex;
         align-items: center;
-        gap: 7px;
-        padding: 9px 14px;
+        gap: 6px;
+        padding: 7px 12px;
         font-weight: 700;
-        font-size: 0.88em;
+        font-size: 0.82em;
         letter-spacing: 0.01em;
         color: #fff;
     }
+
     .analysis-card-body {
-        padding: 12px 14px;
-        font-size: 0.91em;
-        line-height: 1.75;
-        color: #333;
-        background: #fff;
-        min-height: 60px;
+        padding: 10px 12px;
+        font-size: 0.85em;
+        line-height: 1.7;
+        color: var(--text-primary);
+        background: var(--bg-card);
+        min-height: 50px;
+        transition: background-color 0.3s;
     }
-    /* card accent colors */
+
     .ac-research .analysis-card-header { background: #2b7cb8; }
     .ac-methods  .analysis-card-header { background: #2e7d5e; }
     .ac-discuss  .analysis-card-header { background: #7b5ea7; }
     .ac-concl    .analysis-card-header { background: #c0622f; }
 
-    @media screen and (max-width: 768px) {
-        .analysis-panel { grid-template-columns: 1fr; }
-        .analysis-card-header { font-size: 0.85em; padding: 8px 12px; }
-        .analysis-card-body   { font-size: 0.87em; padding: 10px 12px; }
+    /* ── Notes ───────────────────────────────────────────────────── */
+    .notes-box {
+        background: var(--bg-muted);
+        border-radius: 8px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        transition: background-color 0.3s, border-color 0.3s;
+    }
 
-        /* Mobile detail header */
-        .detail-header { flex-direction: column !important; align-items: stretch !important; }
-        .detail-header h1 { font-size: 1.2em !important; line-height: 1.3 !important; }
-        .detail-actions { width: 100%; align-items: stretch !important; }
-        .detail-actions > div { justify-content: flex-start !important; }
-        .detail-buttons { width: 100%; }
-        .detail-buttons button { flex: 1; white-space: nowrap; }
-        .detail-content table { font-size: 0.85em; }
-        .detail-content td { padding: 6px !important; }
+    .notes-textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 8px 10px;
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        font-size: 0.88em;
+        line-height: 1.7;
+        resize: vertical;
+        font-family: inherit;
+        color: var(--text-primary);
+        background: var(--bg-card);
+        box-sizing: border-box;
+        transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+    }
+
+    .notes-textarea:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: -1px;
+    }
+
+    .notes-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .notes-status {
+        font-size: 0.82em;
+        color: var(--text-muted);
+    }
+
+    /* ── Chinese summary ─────────────────────────────────────────── */
+    .summary-cn-detail {
+        background: var(--highlight-bg);
+        border-left: 3px solid var(--accent);
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 0.9em;
+        line-height: 1.7;
+        color: var(--text-primary);
+    }
+
+    /* ── Famous author highlight ─────────────────────────────────── */
+    .famous-highlight {
+        margin-top: 10px;
+        padding: 8px 12px;
+        background: var(--highlight-bg);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-weight: 600;
+        border-left: 3px solid var(--badge-famous-bg);
+    }
+
+    /* ── Metadata table ──────────────────────────────────────────── */
+    .metadata-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .metadata-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85em;
+    }
+
+    .metadata-table td {
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .metadata-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .metadata-table td:first-child {
+        font-weight: 600;
+        color: var(--text-secondary);
+        width: 140px;
+    }
+
+    /* ── Mobile optimizations ────────────────────────────────────── */
+    .figure-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .figure-preview { margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+    .figure-panels { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; background: white; }
+    .figure-panels a { flex: 1 1 100%; min-width: 0; }
+    .figure-panels img { display: block; width: 100%; height: auto; }
+    .figure-preview figcaption { margin-top: 10px; font-size: .85em; line-height: 1.65; overflow-wrap: anywhere; }
+    .figure-note { margin: 8px 0 12px; color: var(--text-secondary); }
+    @media screen and (max-width: 768px) {
+        .figure-gallery { grid-template-columns: 1fr; }
+        .analysis-panel { grid-template-columns: 1fr; }
+        .analysis-card-header { font-size: 0.8em; padding: 6px 10px; }
+        .analysis-card-body   { font-size: 0.82em; padding: 8px 10px; }
+
+        .detail-header {
+            flex-direction: column;
+        }
+
+        .detail-header h1 {
+            font-size: 1.15em;
+            line-height: 1.3;
+        }
+
+        .detail-actions {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .detail-status-badges {
+            justify-content: flex-start;
+        }
+
+        .detail-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            justify-content: stretch;
+        }
+
+        .detail-buttons .btn {
+            width: 100%;
+            min-height: 44px;
+            font-size: 0.8em;
+            padding: 8px 6px;
+        }
+
         .abstract-content.collapsed { max-height: 5em; }
-        .abstract-toggle-detail { width: 100%; min-height: 44px; }
+
+        .abstract-toggle-detail {
+            width: 100%;
+            min-height: 44px;
+        }
+
+        .detail-content table { font-size: 0.82em; }
+        .detail-content td { padding: 6px 4px; }
+
+        .metadata-table td:first-child {
+            width: 110px;
+        }
     }
 </style>
 {% endblock %}
@@ -81,18 +348,18 @@
 <div class="paper-card">
 
     {# ── Title + Action Buttons ── #}
-    <div class="detail-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-        <h1 style="flex:1; margin:0; color:#333; font-size:1.5em; line-height:1.4;">
+    <div class="detail-header">
+        <h1>
             {% if paper.is_important_author %}
                 <span class="badge badge-important" title="Important paper">⭐ Important</span>
             {% endif %}
             {% if paper.is_famous_author %}
-                <span class="badge badge-famous" title="Famous professor: {{ paper.famous_authors }}">🏆 Famous Professor</span>
+                <span class="badge badge-famous" title="知名教授: {{ paper.famous_authors }}">🏆 Famous Professor</span>
             {% endif %}
             {{ paper.title or 'Untitled' }}
         </h1>
-        <div class="detail-actions" style="display:flex; flex-direction:column; gap:8px; align-items:flex-end; margin-left:16px;">
-            <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+        <div class="detail-actions">
+            <div class="detail-status-badges">
                 {% if paper.my_label == 'interested' %}
                     <span class="badge badge-interested">Interested</span>
                 {% elif paper.my_label == 'irrelevant' %}
@@ -101,45 +368,41 @@
                     <span class="badge badge-unanalyzed">Unanalyzed</span>
                 {% endif %}
                 {% if paper.is_read %}
-                    <span class="badge" style="background:#28a745;color:white;">📖 Read</span>
+                    <span class="badge badge-read">📖 Read</span>
                 {% else %}
-                    <span class="badge" style="background:#6c757d;color:white;">📄 Unread</span>
+                    <span class="badge badge-unread">📄 Unread</span>
                 {% endif %}
                 {% if paper.is_downloaded %}
-                    <span class="badge" style="background:#17a2b8;color:white;">⬇ Downloaded</span>
+                    <span class="badge badge-downloaded">⬇ Downloaded</span>
                 {% endif %}
                 {% if paper.is_content_analyzed %}
-                    <span class="badge" style="background:#6f42c1;color:white;">🔬 Analyzed</span>
+                    <span class="badge badge-analyzed">🔬 Analyzed</span>
                 {% endif %}
             </div>
-            <div class="detail-buttons" style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn btn-sm" onclick="toggleRead('{{ paper.arxiv_id }}')" style="font-size:14px; padding:10px 14px;">
+            <div class="detail-buttons">
+                <button class="btn btn-sm" onclick="toggleRead('{{ paper.arxiv_id }}')">
                     {% if paper.is_read %}Unread{% else %}Read{% endif %}
                 </button>
-                <button class="btn btn-sm" onclick="toggleImportant('{{ paper.arxiv_id }}')" style="font-size:14px; padding:10px 14px; background:{% if paper.is_important_author %}#f6c90e{% else %}#e2e8f0{% endif %}; color:{% if paper.is_important_author %}#2d3748{% else %}#2d3748{% endif %}; border:none; border-radius:6px; cursor:pointer;">
-                    {% if paper.is_important_author %}⭐ Important{% else %}☆ Mark Important{% endif %}
+                <button class="btn btn-sm btn-toggle {% if paper.is_important_author %}active-important{% endif %}" onclick="toggleImportant('{{ paper.arxiv_id }}')">
+                    {% if paper.is_important_author %}⭐ Important{% else %}☆ Mark Imp{% endif %}
                 </button>
-                <button class="btn btn-sm" onclick="toggleFamous('{{ paper.arxiv_id }}')" style="font-size:14px; padding:10px 14px; background:{% if paper.is_famous_author %}#ff6b6b{% else %}#e2e8f0{% endif %}; color:{% if paper.is_famous_author %}#fff{% else %}#2d3748{% endif %}; border:none; border-radius:6px; cursor:pointer;">
-                    {% if paper.is_famous_author %}🏆 Famous{% else %}🏆 Mark Famous{% endif %}
+                <button class="btn btn-sm btn-toggle {% if paper.is_famous_author %}active-famous{% endif %}" onclick="toggleFamous('{{ paper.arxiv_id }}')">
+                    {% if paper.is_famous_author %}🏆 Famous{% else %}🏆 Mark Fam{% endif %}
                 </button>
-                <button class="btn btn-sm" onclick="toggleDownloaded('{{ paper.arxiv_id }}')"
-                        style="font-size:14px; padding:10px 14px; background:{% if paper.is_downloaded %}#17a2b8{% else %}#e2e8f0{% endif %}; color:{% if paper.is_downloaded %}#fff{% else %}#2d3748{% endif %}; border:none; border-radius:6px; cursor:pointer;">
+                <button class="btn btn-sm btn-toggle {% if paper.is_downloaded %}active-downloaded{% endif %}" onclick="toggleDownloaded('{{ paper.arxiv_id }}')">
                     {% if paper.is_downloaded %}⬇ Downloaded{% else %}⬇ Mark DL{% endif %}
                 </button>
                 {% if paper.is_downloaded %}
-                <a href="/pdf/{{ paper.arxiv_id }}" target="_blank"
-                   style="font-size:14px; padding:10px 14px; background:#e8521a; color:#fff; border:none; border-radius:6px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-                    📄 Open PDF
+                <a href="/pdf/{{ paper.arxiv_id }}" target="_blank" class="btn btn-sm btn-pdf">
+                    📄 打开 PDF
                 </a>
                 {% endif %}
-                <button class="btn btn-sm" onclick="toggleContentAnalyzed('{{ paper.arxiv_id }}')"
-                        style="font-size:14px; padding:10px 14px; background:{% if paper.is_content_analyzed %}#6f42c1{% else %}#e2e8f0{% endif %}; color:{% if paper.is_content_analyzed %}#fff{% else %}#2d3748{% endif %}; border:none; border-radius:6px; cursor:pointer;">
+                <button class="btn btn-sm btn-toggle {% if paper.is_content_analyzed %}active-analyzed{% endif %}" onclick="toggleContentAnalyzed('{{ paper.arxiv_id }}')">
                     {% if paper.is_content_analyzed %}🔬 Analyzed{% else %}🔬 Mark CA{% endif %}
                 </button>
                 {% if not paper.is_content_analyzed %}
-                <button class="btn btn-sm" id="analyze-btn" onclick="runAnalysis('{{ paper.arxiv_id }}')"
-                        style="font-size:14px; padding:10px 14px; background:#667eea; color:#fff; border:none; border-radius:6px; cursor:pointer;">
-                    🤖 Analyze Abstract
+                <button class="btn btn-sm btn-analyze-ai" id="analyze-btn" onclick="runAnalysis('{{ paper.arxiv_id }}')">
+                    🤖 分析摘要
                 </button>
                 {% endif %}
             </div>
@@ -147,7 +410,7 @@
     </div>
 
     {# ── Meta row ── #}
-    <div class="paper-meta" style="margin-bottom:16px;">
+    <div class="paper-meta" style="margin-bottom:12px;">
         <span><strong>ArXiv ID:</strong> {{ paper.arxiv_id }}{% if paper.version > 1 %}v{{ paper.version }}{% endif %}</span>
         {% if paper.publish_date %}<span><strong>Published:</strong> {{ paper.publish_date }}</span>{% endif %}
         <span><strong>Added:</strong> {{ paper.created_at.strftime('%Y-%m-%d %H:%M:%S') if paper.created_at else 'N/A' }}</span>
@@ -155,9 +418,9 @@
 
     {# ── ArXiv link ── #}
     {% if paper.url %}
-    <div style="margin-bottom:16px;">
-        <a href="{{ paper.url }}" target="_blank" class="btn" style="text-decoration:none; display:inline-block; font-size:15px; padding:10px 20px;">
-            🔗 View on ArXiv → {{ paper.url }}
+    <div style="margin-bottom:12px;">
+        <a href="{{ paper.url }}" target="_blank" class="btn" style="text-decoration:none; display:inline-block;">
+            🔗 View on ArXiv →
         </a>
     </div>
     {% endif %}
@@ -169,8 +432,8 @@
         <div class="detail-content">
             {{ paper.authors }}
             {% if paper.is_famous_author and paper.famous_authors %}
-            <div style="margin-top: 12px; padding: 10px 14px; background: #fff3cd; border-radius: 6px; color: #856404; font-weight: 600;">
-                🏆 Famous professor identified: {{ paper.famous_authors }}
+            <div class="famous-highlight">
+                🏆 识别到知名教授：{{ paper.famous_authors }}
             </div>
             {% endif %}
         </div>
@@ -178,35 +441,43 @@
     {% endif %}
 
     {# ── Structured Analysis (right after authors, always expanded) ── #}
+    {% if paper.classification_version %}
+    <p class="figure-note">分类标准 {{ paper.classification_version }} · 规则 {{ paper.classification_rule }}</p>
+    {% elif paper.my_label %}
+    <p class="figure-note">历史分类记录，尚未按 3.0 标准重新筛选。</p>
+    {% endif %}
+    {% if paper.analysis_error %}
+    <p class="figure-note">已完成分类，摘要翻译和详细分析暂未成功，可点击“分析摘要”重试。</p>
+    {% endif %}
     {% if paper.research_content or paper.methods or paper.discussion or paper.conclusion %}
     <div class="detail-section">
-        <h2>Structured Analysis</h2>
+        <h2>结构化分析 / Structured Analysis</h2>
         <div class="analysis-panel">
 
             {% if paper.research_content %}
             <div class="analysis-card ac-research">
-                <div class="analysis-card-header">🔭 Research Content</div>
+                <div class="analysis-card-header">🔭 研究内容 / Research Content</div>
                 <div class="analysis-card-body">{{ paper.research_content|replace('\n', '<br>')|safe }}</div>
             </div>
             {% endif %}
 
             {% if paper.methods %}
             <div class="analysis-card ac-methods">
-                <div class="analysis-card-header">⚙️ Methods</div>
+                <div class="analysis-card-header">⚙️ 研究方法 / Methods</div>
                 <div class="analysis-card-body">{{ paper.methods|replace('\n', '<br>')|safe }}</div>
             </div>
             {% endif %}
 
             {% if paper.discussion %}
             <div class="analysis-card ac-discuss">
-                <div class="analysis-card-header">💬 Discussion</div>
+                <div class="analysis-card-header">💬 讨论与分析 / Discussion</div>
                 <div class="analysis-card-body">{{ paper.discussion|replace('\n', '<br>')|safe }}</div>
             </div>
             {% endif %}
 
             {% if paper.conclusion %}
             <div class="analysis-card ac-concl">
-                <div class="analysis-card-header">✅ Conclusion</div>
+                <div class="analysis-card-header">✅ 结论 / Conclusion</div>
                 <div class="analysis-card-body">{{ paper.conclusion|replace('\n', '<br>')|safe }}</div>
             </div>
             {% endif %}
@@ -215,19 +486,49 @@
     </div>
     {% endif %}
 
+    {% if figure_preview %}
+    <div class="detail-section" id="paper-figures">
+        <h2>论文图片与图注（前 5 幅）</h2>
+        <p class="figure-note">按论文图号展示，点击图片可查看大图。图注保留原文。
+            {% if figure_preview.source == 'pdf' %}图片从 PDF 按图注位置裁剪；如有裁剪偏差，可查看原文核对。{% endif %}
+        </p>
+        <div class="figure-gallery">
+        {% for figure in figure_preview.figures %}
+            <figure class="figure-preview">
+                <div class="figure-panels">
+                {% for image in figure.images %}
+                    <a href="{{ url_for('serve_figure', key=figure_preview.key, filename=image) }}" target="_blank" rel="noopener">
+                        <img src="{{ url_for('serve_figure', key=figure_preview.key, filename=image) }}" alt="Figure {{ figure.number }}，子图 {{ loop.index }}" loading="lazy">
+                    </a>
+                {% endfor %}
+                </div>
+                <figcaption>{{ figure.caption }}</figcaption>
+                <a href="{{ figure.source_url }}" target="_blank" rel="noopener">查看原图出处{% if figure.page %}（第 {{ figure.page }} 页）{% endif %}</a>
+            </figure>
+        {% endfor %}
+        </div>
+        {% if figure_preview.status == 'ready' and not figure_preview.figures %}
+            <p class="figure-note">这篇论文未找到带编号图注的图片。</p>
+        {% endif %}
+        {% if figure_preview.status != 'ready' %}
+            <p class="figure-note" id="figure-status">{% if figure_preview.status == 'error' %}图片提取暂未成功，可以重试。{% else %}图片尚未提取，分类后将自动提取，也可立即提取。{% endif %}</p>
+            <button class="btn btn-sm" id="figure-extract-btn" onclick="extractFigures()">{% if figure_preview.status == 'error' %}重试图片提取{% else %}提取图片与图注{% endif %}</button>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {# ── Notes ── #}
     <div class="detail-section">
-        <h2>📝 Notes</h2>
-        <div style="background:#f8f9fa; border-radius:8px; padding:14px;">
+        <h2>📝 我的笔记 / Notes</h2>
+        <div class="notes-box">
             <textarea id="notes-textarea"
-                      placeholder="Enter notes here..."
-                      style="width:100%; min-height:120px; padding:10px 12px; border:1px solid #d0d7de; border-radius:6px; font-size:0.93em; line-height:1.7; resize:vertical; font-family:inherit; color:#333; background:#fff; box-sizing:border-box;">{{ paper.notes or '' }}</textarea>
-            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
-                <button onclick="saveNotes('{{ paper.arxiv_id }}')"
-                        style="padding:8px 22px; background:#667eea; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; touch-action:manipulation;">
+                      class="notes-textarea"
+                      placeholder="在此输入笔记...">{{ paper.notes or '' }}</textarea>
+            <div class="notes-footer">
+                <button class="btn btn-sm" onclick="saveNotes('{{ paper.arxiv_id }}')">
                     💾 Save
                 </button>
-                <span id="notes-status" style="font-size:0.85em; color:#666;"></span>
+                <span class="notes-status" id="notes-status"></span>
             </div>
         </div>
     </div>
@@ -235,8 +536,8 @@
     {# ── Chinese summary ── #}
     {% if paper.summary_cn %}
     <div class="detail-section">
-        <h2>Chinese Summary</h2>
-        <div class="detail-content" style="background:#fff3cd;">
+        <h2>中文摘要 / Summary (CN)</h2>
+        <div class="summary-cn-detail">
             {{ paper.summary_cn|replace('\n', '<br>')|safe }}
         </div>
     </div>
@@ -250,8 +551,7 @@
             <div class="detail-content abstract-content collapsed" id="detail-abstract">
                 {{ paper.abstract|replace('\n', '<br>')|safe }}
             </div>
-            <button class="abstract-toggle-detail" onclick="toggleDetailAbstract()"
-                    style="background:#667eea; border:none; color:white; cursor:pointer; font-size:0.9em; padding:8px 16px; border-radius:6px; margin-top:10px; touch-action:manipulation; -webkit-tap-highlight-color:transparent;">
+            <button class="abstract-toggle-detail" onclick="toggleDetailAbstract()">
                 Show full abstract
             </button>
         </div>
@@ -264,7 +564,7 @@
         <h2>Keywords</h2>
         <div class="detail-content">
             {% if paper.category %}
-            <div style="margin-bottom:10px;">
+            <div style="margin-bottom:8px;">
                 <strong>English:</strong>
                 <div class="keywords">
                     {% for keyword in paper.category.split(', ') %}
@@ -275,7 +575,7 @@
             {% endif %}
             {% if paper.keywords_cn %}
             <div>
-                <strong>Chinese:</strong>
+                <strong>中文:</strong>
                 <div class="keywords">
                     {% for keyword in paper.keywords_cn.split(', ') %}
                     <span class="keyword-tag">{{ keyword }}</span>
@@ -290,23 +590,23 @@
     {# ── Metadata table ── #}
     <div class="detail-section">
         <h2>Metadata</h2>
-        <div class="detail-content">
-            <table style="width:100%; border-collapse:collapse;">
+        <div class="detail-content metadata-table-wrapper">
+            <table class="metadata-table">
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>ArXiv ID:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">{{ paper.arxiv_id }}</td>
+                    <td>ArXiv ID:</td>
+                    <td>{{ paper.arxiv_id }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Version:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">{{ paper.version }}</td>
+                    <td>Version:</td>
+                    <td>{{ paper.version }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Label:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">{{ paper.my_label or 'Not analyzed' }}</td>
+                    <td>Label:</td>
+                    <td>{{ paper.my_label or 'Not analyzed' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Important:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">
+                    <td>Important:</td>
+                    <td>
                         {% if paper.is_important_author %}
                             Yes ⭐
                         {% else %}
@@ -315,8 +615,8 @@
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Famous Author:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">
+                    <td>Famous Author:</td>
+                    <td>
                         {% if paper.is_famous_author %}
                             Yes 🏆 {% if paper.famous_authors %}({{ paper.famous_authors }}){% endif %}
                         {% else %}
@@ -325,34 +625,33 @@
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Pushed:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">{{ 'Yes' if paper.is_pushed else 'No' }}</td>
+                    <td>Pushed:</td>
+                    <td>{{ 'Yes' if paper.is_pushed else 'No' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Read Status:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">{{ '📖 Read' if paper.is_read else '📄 Unread' }}</td>
+                    <td>Read Status:</td>
+                    <td>{{ '📖 Read' if paper.is_read else '📄 Unread' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Downloaded:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">
+                    <td>Downloaded:</td>
+                    <td>
                         {% if paper.is_downloaded %}
                             ⬇ Yes &nbsp;
-                            <a href="/pdf/{{ paper.arxiv_id }}" target="_blank"
-                               style="color:#e8521a; font-weight:600; text-decoration:none;">📄 Open PDF</a>
+                            <a href="/pdf/{{ paper.arxiv_id }}" target="_blank" style="font-weight:600;">📄 打开 PDF</a>
                         {% else %}No{% endif %}
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Content Analyzed:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">{{ '🔬 Yes' if paper.is_content_analyzed else 'No' }}</td>
+                    <td>Content Analyzed:</td>
+                    <td>{{ '🔬 Yes' if paper.is_content_analyzed else 'No' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Relevance Score:</strong></td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">{{ paper.relevance_score or 'N/A' }}</td>
+                    <td>Relevance Score:</td>
+                    <td>{{ paper.relevance_score or 'N/A' }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:8px;"><strong>Created At:</strong></td>
-                    <td style="padding:8px;">{{ paper.created_at.strftime('%Y-%m-%d %H:%M:%S') if paper.created_at else 'N/A' }}</td>
+                    <td>Created At:</td>
+                    <td>{{ paper.created_at.strftime('%Y-%m-%d %H:%M:%S') if paper.created_at else 'N/A' }}</td>
                 </tr>
             </table>
         </div>
@@ -361,6 +660,30 @@
 </div>
 
 <script>
+async function extractFigures() {
+    const button = document.getElementById('figure-extract-btn');
+    const status = document.getElementById('figure-status');
+    const endpoint = {{ url_for('paper_figures', arxiv_id=paper.arxiv_id)|tojson }};
+    button.disabled = true;
+    status.textContent = '正在提取图片与图注，请稍候…';
+    try {
+        const started = await fetch(endpoint, {method: 'POST'});
+        if (!started.ok) throw new Error('无法启动提取');
+        const poll = async () => {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) throw new Error('无法获取提取状态');
+                const data = await response.json();
+                if (data.running) { setTimeout(poll, 3000); return; }
+                if (data.status === 'ready') { location.reload(); return; }
+                status.textContent = '图片提取暂未成功，请稍后重试。';
+                button.disabled = false;
+            } catch (error) { status.textContent = '连接中断，请重试。'; button.disabled = false; }
+        };
+        setTimeout(poll, 1000);
+    } catch (error) { status.textContent = error.message; button.disabled = false; }
+}
+
 function toggleRead(arxivId) {
     fetch(`/api/paper/${arxivId}/toggle_read`, { method: 'POST', headers: {'Content-Type': 'application/json'} })
     .then(r => r.json())
@@ -383,14 +706,14 @@ function toggleFamous(arxivId) {
 }
 
 function toggleDownloaded(arxivId) {
-    fetch(`/api/paper/${arxivId}/toggle_downloaded`, { method: 'POST' })
+    fetch(`/api/paper/${arxivId}/toggle_downloaded`, { method: 'POST', headers: {'Content-Type': 'application/json'} })
     .then(r => r.json())
     .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
     .catch(() => alert('Network error'));
 }
 
 function toggleContentAnalyzed(arxivId) {
-    fetch(`/api/paper/${arxivId}/toggle_content_analyzed`, { method: 'POST' })
+    fetch(`/api/paper/${arxivId}/toggle_content_analyzed`, { method: 'POST', headers: {'Content-Type': 'application/json'} })
     .then(r => r.json())
     .then(data => { if (data.success) location.reload(); else alert('Error: ' + data.error); })
     .catch(() => alert('Network error'));
@@ -411,8 +734,8 @@ function toggleDetailAbstract() {
 function saveNotes(arxivId) {
     const text = document.getElementById('notes-textarea').value;
     const status = document.getElementById('notes-status');
-    status.textContent = 'Saving...';
-    status.style.color = '#666';
+    status.textContent = '保存中...';
+    status.style.color = 'var(--text-muted)';
     fetch(`/api/paper/${arxivId}/notes`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -421,15 +744,15 @@ function saveNotes(arxivId) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            status.textContent = '✅ Saved';
-            status.style.color = '#28a745';
+            status.textContent = '✅ 已保存';
+            status.style.color = 'var(--badge-interested-bg)';
             setTimeout(() => { status.textContent = ''; }, 2500);
         } else {
-            status.textContent = '❌ Failed to save';
-            status.style.color = '#dc3545';
+            status.textContent = '❌ 保存失败';
+            status.style.color = 'var(--badge-irrelevant-bg)';
         }
     })
-    .catch(() => { status.textContent = '❌ Network error'; status.style.color = '#dc3545'; });
+    .catch(() => { status.textContent = '❌ 网络错误'; status.style.color = 'var(--badge-irrelevant-bg)'; });
 }
 
 // Ctrl+S / Cmd+S to save notes
@@ -447,8 +770,8 @@ document.addEventListener('keydown', function(e) {
 function runAnalysis(arxivId) {
     const btn = document.getElementById('analyze-btn');
     btn.disabled = true;
-    btn.textContent = '⏳ Analyzing, please wait...';
-    btn.style.background = '#a0aec0';
+    btn.textContent = '⏳ 分析中，请稍候...';
+    btn.style.background = 'var(--text-muted)';
     fetch(`/api/paper/${arxivId}/analyze`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -460,16 +783,16 @@ function runAnalysis(arxivId) {
             location.reload();
         } else {
             btn.disabled = false;
-            btn.textContent = '🤖 Analyze Abstract';
-            btn.style.background = '#667eea';
-            alert('Analysis failed: ' + (data.error || 'Unknown error'));
+            btn.textContent = '🤖 分析摘要';
+            btn.style.background = 'var(--accent)';
+            alert('分析失败: ' + (data.error || '未知错误'));
         }
     })
     .catch(() => {
         btn.disabled = false;
-        btn.textContent = '🤖 Analyze Abstract';
-        btn.style.background = '#667eea';
-        alert('Network error, please try again');
+        btn.textContent = '🤖 分析摘要';
+        btn.style.background = 'var(--accent)';
+        alert('网络错误，请重试');
     });
 }
 </script>

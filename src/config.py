@@ -1,27 +1,48 @@
-# =============================================================================
-# API Keys & Credentials Configuration
-# All sensitive keys and credentials are managed here.
-# =============================================================================
+"""Runtime configuration loaded from environment variables or a local .env file.
 
-# ── Inference Mode ────────────────────────────────────────────────────────────
-# True  = use DeepSeek online API (requires DEEPSEEK_API_KEY)
-# False = use local Ollama (requires Ollama running at localhost:11434)
-USE_API = True
+Copy ``.env.example`` to ``.env`` and fill in only the services you use.
+The real ``.env`` file is ignored by Git.
+"""
 
-# ── DeepSeek API ──────────────────────────────────────────────────────────────
-# Get your API key from: https://platform.deepseek.com
-DEEPSEEK_API_KEY = "sk-your-deepseek-api-key-here"
+import os
+from pathlib import Path
 
-# ── Email (QQ Mail) ───────────────────────────────────────────────────────────
-# For fetching arXiv daily mailing emails via IMAP and sending summaries via SMTP.
-# EMAIL_PASS should be the QQ Mail authorization code, NOT your login password.
-EMAIL_USER = "your_qq@qq.com"
-EMAIL_PASS = "your_qq_auth_code"
 
-# ── WeChat Public Account ─────────────────────────────────────────────────────
-# Optional: used only if you call --send-gzh.
-# Get these from https://mp.weixin.qq.com
-WECHAT_APPID = "your-wechat-appid"
-WECHAT_SECRET = "your-wechat-secret"
-# Upload a cover image via WeChat API first, then paste its media_id here.
-WECHAT_THUMB_MEDIA_ID = "your-thumb-media-id"
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_local_env():
+    env_file = ROOT / '.env'
+    if not env_file.exists():
+        return
+    for raw_line in env_file.read_text(encoding='utf-8').splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            value = value[1:-1]
+        os.environ.setdefault(key.strip(), value)
+
+
+_load_local_env()
+
+API_PROVIDER = os.getenv('API_PROVIDER', 'deepseek')
+
+DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY', '')
+DEEPSEEK_BASE_URL = os.getenv('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
+DEEPSEEK_MODEL = os.getenv('DEEPSEEK_MODEL', 'deepseek-chat')
+
+KIMI_API_KEY = os.getenv('KIMI_API_KEY', '')
+KIMI_BASE_URL = os.getenv('KIMI_BASE_URL', 'https://api.moonshot.cn/v1')
+KIMI_MODEL = os.getenv('KIMI_MODEL', 'moonshot-v1-128k')
+
+EMAIL_USER = os.getenv('EMAIL_USER', '')
+EMAIL_PASS = os.getenv('EMAIL_PASS', '')
+ARXIV_MAIL_FOLDER = os.getenv('ARXIV_MAIL_FOLDER', 'INBOX')
+
+WECHAT_APPID = os.getenv('WECHAT_APPID', '')
+WECHAT_SECRET = os.getenv('WECHAT_SECRET', '')
+WECHAT_THUMB_MEDIA_ID = os.getenv('WECHAT_THUMB_MEDIA_ID', '')
+WECHAT_AUTHOR = os.getenv('WECHAT_AUTHOR', 'Arxiv Classify')
